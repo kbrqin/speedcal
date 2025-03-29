@@ -5,7 +5,7 @@ import { useEffect } from "react";
 const LogoutPage =  () => {
     const router = useRouter();
     useEffect(() => {
-        setTimeout(()=> router.push("/"), 2000);
+        router.push("/");
     }, []);
   return <div>You have logged out... redirecting in a sec.</div>;
 };
