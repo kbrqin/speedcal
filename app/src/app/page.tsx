@@ -1,5 +1,8 @@
+import EventCreateTest from "@/components/event-create-test";
+import EventFetchTest from "@/components/event-fetch-test";
 import LoginButton from "@/components/LoginLogoutButton";
 import UserGreetText from "@/components/UserGreetText";
+import CalendarSmall from "@/components/generated_in_review/calendar-small";
 import Image from "next/image";
 
 export default function Home() {
@@ -15,6 +18,9 @@ export default function Home() {
           priority
         />
         <UserGreetText />
+        <EventCreateTest/>
+        <EventFetchTest/>
+        <CalendarSmall/>
         <div className="flex gap-4 items-center flex-col sm:flex-row">
           <LoginButton />
         </div>

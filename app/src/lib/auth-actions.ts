@@ -73,6 +73,7 @@ export async function signInWithGoogle() {
         access_type: "offline",
         prompt: "consent",
       },
+      scopes: 'https://www.googleapis.com/auth/calendar',
     },
   });
 
