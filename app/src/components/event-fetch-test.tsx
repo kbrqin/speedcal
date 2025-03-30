@@ -6,6 +6,8 @@ import { fetchEvents } from "@/lib/event-actions";
 
 const EventFetchTest = () => {
   const [events, setEvents] = useState<any[]>([]);
+  const [user, setUser] = useState<any>(null);
+  const supabase = createClient();
 
   useEffect(() => {
     const loadEvents = async () => {
@@ -16,6 +18,13 @@ const EventFetchTest = () => {
       }
     };
     loadEvents();
+    const fetchUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      setUser(user);
+    };
+    fetchUser();
   }, []);
   // const [user, setUser] = useState<any>(null);
   // const [session, setSession] = useState<any>(null);
@@ -74,33 +83,35 @@ const EventFetchTest = () => {
   //   const events = await fetchEvents();
   //   console.log(events);
   // }
-  return (
-    <div className="flex flex-col gap-4">
-      {/* <p>
+  if (user !== null) {
+    return (
+      <div className="flex flex-col gap-4">
+        {/* <p>
         <Button onClick={() => handleFetchEvents()}>Fetch Events</Button>
       </p> */}
-      {/* {events.length > 0 ? "hi" : "no events"} */}
-      {events.length > 0 ? (
-        <div>
-          <h2>Events:</h2>
-          <ul>
-            {events.map((event, index) => (
-              <li key={index}>
-                <p>{index}</p>
-                <strong>{event.name}</strong>{" "}
-                {/* Adjust based on the structure of event */}
-                <p>{event.description}</p> {/* Example description */}
-                <p>{new Date(event.date).toLocaleString()}</p>{" "}
-                {/* Example date */}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : (
-        <p>No events available.</p>
-      )}
-    </div>
-  );
+        {/* {events.length > 0 ? "hi" : "no events"} */}
+        {events.length > 0 ? (
+          <div>
+            <h2>Events:</h2>
+            <ul>
+              {events.map((event, index) => (
+                <li key={index}>
+                  <p>{index}</p>
+                  <strong>{event.name}</strong>{" "}
+                  {/* Adjust based on the structure of event */}
+                  <p>{event.description}</p> {/* Example description */}
+                  <p>{new Date(event.date).toLocaleString()}</p>{" "}
+                  {/* Example date */}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : (
+          <p>No events available.</p>
+        )}
+      </div>
+    );
+  }
 };
 
 export default EventFetchTest;

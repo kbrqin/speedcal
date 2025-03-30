@@ -36,7 +36,7 @@ export default function Home() {
         />
         <UserGreetText />
         <EventCreateTest />
-        <EventFetchTest/>
+        {/* <EventFetchTest/> */}
         <CalendarSmall />
         <CalendarMain />
         <div className="flex gap-4 items-center flex-col sm:flex-row">
