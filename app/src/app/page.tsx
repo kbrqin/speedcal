@@ -1,11 +1,28 @@
+"use client"
+
 import EventCreateTest from "@/components/event-create-test";
 import EventFetchTest from "@/components/event-fetch-test";
 import LoginButton from "@/components/LoginLogoutButton";
 import UserGreetText from "@/components/UserGreetText";
 import CalendarSmall from "@/components/generated_in_review/calendar-small";
 import Image from "next/image";
+import CalendarMain from "@/components/calendar-main";
+import { useEffect, useState } from "react";
+import { fetchEvents } from "@/lib/event-actions";
+import { redirect } from "next/dist/server/api-utils";
 
 export default function Home() {
+  // const [events, setEvents] = useState<any[]>([]); 
+
+  // useEffect(() => {
+  //   const loadEvents = async () => {
+  //     const data = await fetchEvents();
+  //     setEvents(data); 
+  //     console.log("Fetched events:", data);
+  //   };
+  //   loadEvents(); 
+  // }, []);
+
   return (
     <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
       <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
@@ -18,9 +35,10 @@ export default function Home() {
           priority
         />
         <UserGreetText />
-        <EventCreateTest/>
+        <EventCreateTest />
         <EventFetchTest/>
-        <CalendarSmall/>
+        <CalendarSmall />
+        <CalendarMain />
         <div className="flex gap-4 items-center flex-col sm:flex-row">
           <LoginButton />
         </div>
