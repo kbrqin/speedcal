@@ -1,9 +1,11 @@
 "use client";
-import CalendarMain from "@/components/calendar-main";
+import CalendarMain from "@/components/calendar/calendar-main";
 import EventFetchTest from "@/components/event-fetch-test";
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { redirect } from "next/navigation";
+import SidebarLeft from "@/components/calendar/sidebar-left";
+import SidebarRight from "@/components/calendar/sidebar-right";
 
 const CalendarPage = () => {
   const [user, setUser] = useState<any>(null);
@@ -19,11 +21,17 @@ const CalendarPage = () => {
   }, []);
   if (user !== null) {
     return (
-      <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-        <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
+      <div className="w-full flex flex-row items-start justify-center">
+        <div className="flex-2">
+          <SidebarLeft />
+        </div>
+        <div className="flex-9">
           <CalendarMain />
           <EventFetchTest />
-        </main>
+        </div>
+        <div className="flex-3">
+          <SidebarRight />
+        </div>
       </div>
     );
   }

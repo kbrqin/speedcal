@@ -6,7 +6,7 @@ import LoginButton from "@/components/LoginLogoutButton";
 import UserGreetText from "@/components/UserGreetText";
 import CalendarSmall from "@/components/generated_in_review/calendar-small";
 import Image from "next/image";
-import CalendarMain from "@/components/calendar-main";
+import CalendarMain from "@/components/calendar/calendar-main";
 import { useEffect, useState } from "react";
 import { fetchEvents } from "@/lib/event-actions";
 import { redirect } from "next/dist/server/api-utils";
@@ -36,7 +36,6 @@ export default function Home() {
         />
         <UserGreetText />
         <EventCreateTest />
-        {/* <EventFetchTest/> */}
         <CalendarSmall />
         <CalendarMain />
         <div className="flex gap-4 items-center flex-col sm:flex-row">
