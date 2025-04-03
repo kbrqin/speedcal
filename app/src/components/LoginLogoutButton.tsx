@@ -20,7 +20,7 @@ const LoginButton = () => {
   }, []);
   if (user) {
     return (
-      <Button
+      <Button variant="outline" size="sm"
         onClick={() => {
           signout();
           setUser(null);

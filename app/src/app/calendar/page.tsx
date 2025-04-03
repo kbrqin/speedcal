@@ -10,6 +10,9 @@ import SidebarRight from "@/components/calendar/sidebar-right";
 const CalendarPage = () => {
   const [user, setUser] = useState<any>(null);
   const supabase = createClient();
+
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+
   useEffect(() => {
     const fetchUser = async () => {
       const {
@@ -21,16 +24,18 @@ const CalendarPage = () => {
   }, []);
   if (user !== null) {
     return (
-      <div className="w-full flex flex-row items-start justify-center">
-        <div className="flex-2">
+      <div className="w-full h-screen flex flex-row items-start justify-center overflow-hidden">
+        <div className="flex-2 border-r-1 border-gray-100 pr-1 h-full">
           <SidebarLeft />
         </div>
-        <div className="flex-9">
-          <CalendarMain />
-          <EventFetchTest />
+        <div className="flex-11 h-full overflow-y-scroll">
+          <CalendarMain setSelectedDate={setSelectedDate} />
         </div>
-        <div className="flex-3">
-          <SidebarRight />
+        <div className="flex-3 border-l-1 border-gray-100 pl-1 h-full">
+          <SidebarRight
+            selectedDate={selectedDate}
+            onClose={() => setSelectedDate(null)}
+          />
         </div>
       </div>
     );

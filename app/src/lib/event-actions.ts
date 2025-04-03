@@ -69,8 +69,8 @@ async function supabaseCreateEvent(formData: FormData, eventId: string) {
   }
   console.log(event);
 
-  revalidatePath("/", "layout");
-  redirect("/");
+  revalidatePath("/calendar", "layout");
+  redirect("/calendar");
 }
 
 export async function createEvent(formData: FormData, sessionToken: string) {
@@ -96,4 +96,51 @@ export async function fetchEvents() {
       return events;
     }
   }
+}
+
+async function supabaseCreateTask() {
+
+}
+
+export async function createTask() {
+
+}
+
+export async function fetchTasks() {
+  console.log("fetching tasks");
+  const supabase = await createClient();
+  console.log("client created");
+  const user = supabase.auth.getUser();
+  console.log("user", user);
+  if (user !== null) {
+    const { data: tasks, error } = await supabase
+      .from("tasks_test")
+      .select("*")
+      .eq("profile_id", (await user).data.user?.id);
+    if (error) {
+      console.log(error);
+      redirect("/error");
+    } else {
+      return tasks;
+    }
+  }
+}
+export async function fetchCalendars() {
+    console.log("fetching calendars");
+    const supabase = await createClient();
+    console.log("client created");
+    const user = supabase.auth.getUser();
+    console.log("user", user);
+    if (user !== null) {
+        const { data: calendars, error } = await supabase
+        .from("calendars_test")
+        .select("*")
+        .eq("profile_id", (await user).data.user?.id);
+        if (error) {
+        console.log(error);
+        redirect("/error");
+        } else {
+        return calendars;
+        }
+    }
 }

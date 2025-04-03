@@ -21,8 +21,8 @@ export async function login(formData: FormData) {
     redirect("/error");
   }
 
-  revalidatePath("/", "layout");
-  redirect("/");
+  revalidatePath("/calendar", "layout");
+  redirect("/calendar");
 }
 
 export async function signup(formData: FormData) {
@@ -49,8 +49,8 @@ export async function signup(formData: FormData) {
     redirect("/error");
   }
 
-  revalidatePath("/", "layout");
-  redirect("/");
+  revalidatePath("/calendar", "layout");
+  redirect("/calendar");
 }
 
 export async function signout() {
@@ -69,6 +69,7 @@ export async function signInWithGoogle() {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
+      redirectTo: "http://localhost:3000/calendar",
       queryParams: {
         access_type: "offline",
         prompt: "consent",

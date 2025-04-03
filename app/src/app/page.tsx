@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import EventCreateTest from "@/components/event-create-test";
 import EventFetchTest from "@/components/event-fetch-test";
@@ -10,18 +10,44 @@ import CalendarMain from "@/components/calendar/calendar-main";
 import { useEffect, useState } from "react";
 import { fetchEvents } from "@/lib/event-actions";
 import { redirect } from "next/dist/server/api-utils";
+import { createClient } from "@/utils/supabase/client";
+import { Button } from "@/components/ui/button";
+import { EnumCalendarType } from "@/lib/types";
+import { create } from "domain";
+import { importCalendars } from "@/lib/calendar-actions";
 
 export default function Home() {
-  // const [events, setEvents] = useState<any[]>([]); 
+  const [user, setUser] = useState<any>(null);
+  const [session, setSession] = useState<any>(null);
+  const supabase = createClient();
+  useEffect(() => {
+    const fetchUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      setUser(user);
+    };
+    fetchUser();
+    const fetchSession = async () => {
+      const { data, error } = await supabase.auth.getSession();
+      if (error) {
+        console.log(error);
+      } else {
+        console.log(data);
+        setSession(data.session);
+        console.log(data.session);
+      }
+    };
+    fetchSession();
+  }, []);
 
-  // useEffect(() => {
-  //   const loadEvents = async () => {
-  //     const data = await fetchEvents();
-  //     setEvents(data); 
-  //     console.log("Fetched events:", data);
-  //   };
-  //   loadEvents(); 
-  // }, []);
+  async function handleImportCalendars() {
+    if (session !== null) {
+      console.log("importing calendars.....");
+      const response = await importCalendars(session.provider_token);
+      console.log(response);
+    }
+  }
 
   return (
     <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
@@ -35,9 +61,12 @@ export default function Home() {
           priority
         />
         <UserGreetText />
-        <EventCreateTest />
-        <CalendarSmall />
-        <CalendarMain />
+        <Button onClick={handleImportCalendars}>
+          Load Calendars
+        </Button>
+        {/* <EventCreateTest /> */}
+        {/* <CalendarSmall /> */}
+        {/* <CalendarMain /> */}
         <div className="flex gap-4 items-center flex-col sm:flex-row">
           <LoginButton />
         </div>

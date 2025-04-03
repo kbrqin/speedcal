@@ -1,12 +1,20 @@
+import EventCreateTest from "../event-create-test";
 
-const SidebarRight = () => {
+interface SidebarRightProps {
+  selectedDate: string | null;
+  onClose: () => void;
+}
+
+const SidebarRight = ({ selectedDate, onClose }: SidebarRightProps) => {
   return (
-    <div>
-      <div >
-        <h2>Sidebar Right</h2>
-        <p>This is the right sidebar content.</p>
-      </div>
+    <div className="px-2 py-4 text-xs">
+      {!selectedDate ? (
+        <p>Select a date to create an event.</p>
+      ) : (
+        <EventCreateTest selectedDate={selectedDate} onClose={onClose} />
+      )}
     </div>
   );
-}
+};
+
 export default SidebarRight;
