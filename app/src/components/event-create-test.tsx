@@ -5,7 +5,15 @@ import { Button } from "@/components/ui/button";
 import { createEvent } from "@/lib/event-actions";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
+import { fetchCalendars } from "@/lib/calendar-actions";
+
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface EventCreateTestProps {
   selectedDate: string | null;
@@ -19,7 +27,10 @@ const EventCreateTest = ({ selectedDate, onClose }: EventCreateTestProps) => {
   const [end, setEnd] = useState<Date | null>(null);
   const [eventName, setEventName] = useState<string | null>(null);
   const [eventDescription, setEventDescription] = useState<string | null>(null);
-
+  const [calendars, setCalendars] = useState<any[]>([]);
+  const [selectedCalendar, setSelectedCalendar] = useState<string | undefined>(
+    undefined
+  );
   const supabase = createClient();
 
   useEffect(() => {
@@ -40,6 +51,15 @@ const EventCreateTest = ({ selectedDate, onClose }: EventCreateTestProps) => {
       }
     };
     fetchSession();
+
+    const loadCalendars = async () => {
+      const data = await fetchCalendars();
+      if (data !== null) {
+        setCalendars(data ?? []);
+        console.log("Fetched calendars:", data);
+      }
+    };
+    loadCalendars();
   }, []);
 
   useEffect(() => {
@@ -76,9 +96,9 @@ const EventCreateTest = ({ selectedDate, onClose }: EventCreateTestProps) => {
   }
 
   return (
-      <form className="flex flex-col gap-2 w-full text-xs">
+    <form className="flex flex-col gap-2 w-full text-xs">
       <Input
-        className="w-full text-xs" 
+        className="w-full text-xs"
         type="text"
         name="event-name"
         value={eventName ?? ""}
@@ -120,6 +140,31 @@ const EventCreateTest = ({ selectedDate, onClose }: EventCreateTestProps) => {
           }
         />
       </Label>
+
+      <Select value={selectedCalendar} onValueChange={setSelectedCalendar}>
+        <SelectTrigger className="w-full text-xs">
+          <SelectValue placeholder="Calendar" />
+        </SelectTrigger>
+        {calendars.length > 0 ? (
+          <SelectContent className="w-full text-xs">
+            {calendars.map((calendar) => (
+              <SelectItem
+                key={calendar.google_calendar_id}
+                value={calendar.google_calendar_id}
+              >
+                {calendar.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        ) : (
+          <p></p>
+        )}
+      </Select>
+      <input
+        type="hidden"
+        name="calendar-id"
+        value={selectedCalendar ?? "primary"}
+      />
 
       <Button
         className="w-full text-xs"

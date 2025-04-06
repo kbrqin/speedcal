@@ -7,7 +7,21 @@ import styled from "@emotion/styled";
 import { DateClickArg } from "@fullcalendar/interaction";
 import { createClient } from "@/utils/supabase/client";
 import React, { useEffect, useState } from "react";
-import { fetchEvents } from "@/lib/event-actions";
+import {
+  fetchEvents,
+  fetchTasks,
+  deleteEvent,
+  deleteTask,
+  updateTaskCompleted,
+} from "@/lib/event-actions";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface CalendarProps {
   setSelectedDate: (date: string | null) => void;
@@ -80,7 +94,7 @@ const CalendarMain = ({ setSelectedDate }: CalendarProps) => {
       font-weight: 500;
       font-size: 14px;
     }
-    
+
     .fc-event-title {
       font-weight: 500;
       font-size: 12px;
@@ -92,9 +106,19 @@ const CalendarMain = ({ setSelectedDate }: CalendarProps) => {
   };
 
   const [events, setEvents] = useState<any[]>([]);
+  const [tasks, setTasks] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
+  const [session, setSession] = useState<any>(null);
   const supabase = createClient();
   const [eventsList, setEventsList] = useState<any[]>([]);
+  const [tasksList, setTasksList] = useState<any[]>([]);
+  const [contextMenu, setContextMenu] = useState<{
+    visible: boolean;
+    x: number;
+    y: number;
+    eventId: string | null;
+    calendar: string | null;
+  }>({ visible: false, x: 0, y: 0, eventId: null, calendar: null });
 
   useEffect(() => {
     const loadEvents = async () => {
@@ -105,31 +129,139 @@ const CalendarMain = ({ setSelectedDate }: CalendarProps) => {
     };
     loadEvents();
 
+    const loadTasks = async () => {
+      const data = await fetchTasks();
+      if (data !== null) {
+        setTasks(data ?? []);
+      }
+    };
+    loadTasks();
+
     const fetchUser = async () => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
     };
     fetchUser();
+
+    const fetchSession = async () => {
+      const { data, error } = await supabase.auth.getSession();
+      if (error) {
+        console.log(error);
+      } else {
+        console.log(data);
+        setSession(data.session);
+        console.log(data.session);
+      }
+    };
+    fetchSession();
   }, []);
 
+  // TODO: consolidate down useEffects
   useEffect(() => {
     if (events.length > 0) {
       setEventsList(
         events.map((event) => ({
           id: event.id,
-          title: event.name || "Untitled Event",
+          title: event.name || "untitled event",
           start: event.start_time,
           end: event.end_time,
           allDay: false,
+          color: event.color,
+          extendedProps: {
+            calendar: "events_test", // Set your custom properties here
+          },
         }))
       );
     }
-  }, [events]);
+    if (tasks.length > 0) {
+      setTasksList(
+        tasks.map((task) => ({
+          id: task.id,
+          title: task.name || "untitled task",
+          start: task.start_time,
+          end: task.end_time,
+          allDay: false,
+          color: task.color,
+          extendedProps: {
+            calendar: "tasks", // Set your custom properties here
+            is_complete: task.is_complete,
+          },
+        }))
+      );
+    }
+  }, [events, tasks]);
 
+  useEffect(() => {
+    const closeMenu = () =>
+      setContextMenu({
+        visible: false,
+        x: 0,
+        y: 0,
+        eventId: null,
+        calendar: null,
+      });
+    window.addEventListener("click", closeMenu);
+    return () => window.removeEventListener("click", closeMenu);
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = () => {
+      if (contextMenu.visible) {
+        setContextMenu({ ...contextMenu, visible: false });
+      }
+    };
+    window.addEventListener("click", handleClickOutside);
+    return () => window.removeEventListener("click", handleClickOutside);
+  }, [contextMenu]);
+
+  const handleDeleteEvent = async () => {
+    console.log("Deleting event with ID:", contextMenu.eventId);
+    if (
+      contextMenu.calendar === "events_test" &&
+      contextMenu.eventId &&
+      session !== null
+    ) {
+      const response = await deleteEvent(
+        contextMenu.eventId,
+        session.provider_token
+      );
+      console.log(response);
+    } else if (contextMenu.calendar === "tasks" && contextMenu.eventId) {
+      const response = await deleteTask(
+        contextMenu.eventId,
+        session.provider_token
+      );
+      console.log(response);
+    }
+  };
+
+  async function handleCheckboxChange(taskId: string, isChecked: boolean) {
+    // TODO: update the task in supabase
+    console.log(
+      `Task ${taskId} marked as ${isChecked ? "complete" : "incomplete"}`
+    );
+
+    setTasksList((prevTasks) =>
+      prevTasks.map((task) =>
+        task.id === taskId
+          ? {
+              ...task,
+              extendedProps: {
+                ...task.extendedProps,
+                is_complete: isChecked,
+              },
+            }
+          : task
+      )
+    );
+    const response = await updateTaskCompleted(taskId);
+    console.log(response);
+  }
   return (
     <div className="container p-0 w-full h-full flex flex-col">
       <StyleWrapper>
+        {/* TODO: implement event update, event drag and drop, event resize */}
         <FullCalendar
           plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
           initialView="dayGridMonth"
@@ -147,15 +279,106 @@ const CalendarMain = ({ setSelectedDate }: CalendarProps) => {
           aspectRatio={1.5}
           dateClick={handleDateClick}
           editable={true}
-          events={eventsList}
+          events={[...eventsList, ...tasksList]}
           views={{
             dayGridMonth: {
               dayMaxEvents: 3,
             },
           }}
           contentHeight="auto"
+          eventContent={(info) => {
+            const eventColor =
+              info.event.backgroundColor ||
+              info.event.backgroundColor ||
+              "#ffffff";
+
+            if (info.event.extendedProps.calendar === "tasks") {
+              const isChecked = info.event.extendedProps.is_complete || false;
+
+              return (
+                <div
+                  className="flex items-center px-1 py-0.5 rounded text-xs w-full"
+                  style={{ backgroundColor: eventColor }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    onChange={(e) =>
+                      handleCheckboxChange(info.event.id, e.target.checked)
+                    }
+                    style={{ marginRight: "8px" }}
+                  />
+                  <span>{info.event.title}</span>
+                </div>
+              );
+            }
+
+            return (
+              <div
+                className="flex items-center px-1 py-0.5 rounded text-xs w-full gap-1"
+                style={{ backgroundColor: eventColor }}
+              >
+                <span>
+                  {info.event.start
+                    ? (() => {
+                        const date = new Date(info.event.start);
+                        const hours = date.getHours();
+                        const isAM = hours < 12;
+                        const hour12 = hours % 12 || 12;
+                        return `${hour12}${isAM ? "a" : "p"}`;
+                      })()
+                    : ""}
+                </span>
+                <span>{info.event.title}</span>
+              </div>
+            );
+          }}
+          eventDidMount={(info) => {
+            info.el.addEventListener("contextmenu", (e) => {
+              e.preventDefault();
+              setContextMenu({
+                visible: true,
+                x: e.pageX,
+                y: e.pageY,
+                eventId: info.event.id,
+                calendar: info.event.extendedProps.calendar,
+              });
+            });
+          }}
+          // eventClick={handleEventClick}
+          // eventDrop={handleEventDrop}
+          // eventResize={handleEventResize}
         />
       </StyleWrapper>
+
+      {contextMenu.visible && (
+        <div
+          style={{
+            position: "absolute",
+            top: contextMenu.y,
+            left: contextMenu.x,
+            zIndex: 9999,
+          }}
+          onClick={() => setContextMenu({ ...contextMenu, visible: false })}
+        >
+          <DropdownMenu
+            open={true}
+            onOpenChange={(open) =>
+              !open && setContextMenu({ ...contextMenu, visible: false })
+            }
+          >
+            <DropdownMenuTrigger asChild>
+              <div />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem>Edit</DropdownMenuItem>
+              <DropdownMenuItem onClick={handleDeleteEvent}>
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )}
     </div>
   );
 };

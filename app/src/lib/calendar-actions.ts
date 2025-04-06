@@ -41,13 +41,30 @@ async function supabaseImportCalendar(item: any) {
     .eq("profile_id", profileId)
     .single(); // Expecting at most one match
 
-  if (fetchError && fetchError.code !== "PGRST116") {
+  if (fetchError) {
     console.error("Error checking existing calendar:", fetchError);
     return;
   }
 
   if (existingCalendar) {
-    console.log("Calendar already exists, skipping insertion:", existingCalendar);
+    console.log(
+      "Calendar already exists, skipping insertion:",
+      existingCalendar
+    );
+    const calendar_data = {
+      name: item.summary,
+      profile_id: profileId,
+      google_calendar_id: item.id,
+      description: item.description,
+      calendar_type: "event" as EnumCalendarType,
+      is_primary: item.primary ?? false,
+      color: item.backgroundColor,
+    };
+    const { data: calendar, error: insertError } = await supabase
+      .from("calendars")
+      .update(calendar_data)
+      .eq("google_calendar_id", item.id)
+      .select(); // Fetch inserted record for confirmation
     return;
   }
 
@@ -59,6 +76,7 @@ async function supabaseImportCalendar(item: any) {
     description: item.description,
     calendar_type: "event" as EnumCalendarType,
     is_primary: item.primary ?? false,
+    color: item.backgroundColor,
   };
 
   const { data: newCalendar, error: insertError } = await supabase
