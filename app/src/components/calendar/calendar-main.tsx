@@ -18,16 +18,19 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Checkbox } from "@/components/ui/checkbox";
+import { EventClickArg } from "@fullcalendar/core/index.js";
+import { EventType } from "@/lib/types";
+import { fetchCalendars } from "@/lib/calendar-actions";
 
 interface CalendarProps {
   setSelectedDate: (date: string | null) => void;
+  setSelectedEvent: (event: EventType | null) => void;
 }
 
-const CalendarMain = ({ setSelectedDate }: CalendarProps) => {
+const CalendarMain = ({ setSelectedDate, setSelectedEvent }: CalendarProps) => {
   const StyleWrapper = styled.div`
     .fc {
       font-family: var(--font-geist-sans);
@@ -101,10 +104,6 @@ const CalendarMain = ({ setSelectedDate }: CalendarProps) => {
     }
   `;
 
-  const handleDateClick = (arg: DateClickArg) => {
-    setSelectedDate(arg.dateStr);
-  };
-
   const [events, setEvents] = useState<any[]>([]);
   const [tasks, setTasks] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
@@ -120,7 +119,61 @@ const CalendarMain = ({ setSelectedDate }: CalendarProps) => {
     calendar: string | null;
   }>({ visible: false, x: 0, y: 0, eventId: null, calendar: null });
 
+  const [calendarMap, setCalendarMap] = useState<Record<string, string>>({});
+
   useEffect(() => {
+    const loadCalendars = async () => {
+      const calendars = await fetchCalendars();
+      const map: Record<string, string> = {};
+      if (calendars !== null && calendars !== undefined) {
+        calendars.forEach((calendar) => {
+          map[calendar.id] = calendar.google_calendar_id;
+        });
+      }
+      setCalendarMap(map);
+    };
+
+    loadCalendars();
+  }, []);
+
+  useEffect(() => {
+    if (!events.length && !tasks.length) return;
+
+    const mappedEvents = events.map((event) => ({
+      id: event.id,
+      title: event.name || "untitled event",
+      start: event.start_time,
+      end: event.end_time,
+      allDay: false,
+      color: event.color,
+      extendedProps: {
+        calendar: "events_test",
+        calendar_id: calendarMap[event.calendar_id] ?? "unknown",
+        description: event.description,
+      },
+    }));
+
+    const mappedTasks = tasks.map((task) => ({
+      id: task.id,
+      title: task.name || "untitled task",
+      start: task.start_time,
+      end: task.end_time,
+      allDay: false,
+      color: task.color,
+      extendedProps: {
+        calendar: "tasks",
+        calendar_id: calendarMap[task.calendar_id] ?? "unknown",
+        is_complete: task.is_complete,
+        description: task.description,
+      },
+    }));
+
+    setEventsList(mappedEvents);
+    setTasksList(mappedTasks);
+  }, [events, tasks, calendarMap]);
+
+  useEffect(() => {
+    // initial load
     const loadEvents = async () => {
       const data = await fetchEvents();
       if (data !== null) {
@@ -157,54 +210,6 @@ const CalendarMain = ({ setSelectedDate }: CalendarProps) => {
     fetchSession();
   }, []);
 
-  // TODO: consolidate down useEffects
-  useEffect(() => {
-    if (events.length > 0) {
-      setEventsList(
-        events.map((event) => ({
-          id: event.id,
-          title: event.name || "untitled event",
-          start: event.start_time,
-          end: event.end_time,
-          allDay: false,
-          color: event.color,
-          extendedProps: {
-            calendar: "events_test", // Set your custom properties here
-          },
-        }))
-      );
-    }
-    if (tasks.length > 0) {
-      setTasksList(
-        tasks.map((task) => ({
-          id: task.id,
-          title: task.name || "untitled task",
-          start: task.start_time,
-          end: task.end_time,
-          allDay: false,
-          color: task.color,
-          extendedProps: {
-            calendar: "tasks", // Set your custom properties here
-            is_complete: task.is_complete,
-          },
-        }))
-      );
-    }
-  }, [events, tasks]);
-
-  useEffect(() => {
-    const closeMenu = () =>
-      setContextMenu({
-        visible: false,
-        x: 0,
-        y: 0,
-        eventId: null,
-        calendar: null,
-      });
-    window.addEventListener("click", closeMenu);
-    return () => window.removeEventListener("click", closeMenu);
-  }, []);
-
   useEffect(() => {
     const handleClickOutside = () => {
       if (contextMenu.visible) {
@@ -236,12 +241,26 @@ const CalendarMain = ({ setSelectedDate }: CalendarProps) => {
     }
   };
 
-  async function handleCheckboxChange(taskId: string, isChecked: boolean) {
-    // TODO: update the task in supabase
-    console.log(
-      `Task ${taskId} marked as ${isChecked ? "complete" : "incomplete"}`
-    );
+  const handleDateClick = (arg: DateClickArg) => {
+    setSelectedDate(arg.dateStr);
+    setSelectedEvent(null);
+  };
 
+  const handleEventClick = (arg: EventClickArg) => {
+    console.log("Event clicked:", arg.event);
+    console.log(arg.event.extendedProps.calendar_id);
+    setSelectedDate(null);
+    setSelectedEvent({
+      id: arg.event.id,
+      name: arg.event.title,
+      description: arg.event.extendedProps.description || "",
+      start: arg.event.start?.toString() || "",
+      end: arg.event.end?.toString() || "",
+      calendar_id: arg.event.extendedProps.calendar_id || "oh no",
+    });
+  };
+
+  async function handleCheckboxChange(taskId: string, isChecked: boolean) {
     setTasksList((prevTasks) =>
       prevTasks.map((task) =>
         task.id === taskId
@@ -278,6 +297,7 @@ const CalendarMain = ({ setSelectedDate }: CalendarProps) => {
           }}
           aspectRatio={1.5}
           dateClick={handleDateClick}
+          eventClick={handleEventClick}
           editable={true}
           events={[...eventsList, ...tasksList]}
           views={{
@@ -297,17 +317,27 @@ const CalendarMain = ({ setSelectedDate }: CalendarProps) => {
 
               return (
                 <div
-                  className="flex items-center px-1 py-0.5 rounded text-xs w-full"
+                  className="flex items-center px-1 py-0.5 gap-1 rounded text-xs w-full"
                   style={{ backgroundColor: eventColor }}
                 >
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={isChecked}
-                    onChange={(e) =>
-                      handleCheckboxChange(info.event.id, e.target.checked)
+                    onCheckedChange={(checked) =>
+                      handleCheckboxChange(info.event.id, checked as boolean)
                     }
-                    style={{ marginRight: "8px" }}
+                    className="mr-1 h-4 w-4 bg-[rgb(255,255,255,0.5)] border-1 border-gray-300"
                   />
+                  <span>
+                    {info.event.start
+                      ? (() => {
+                          const date = new Date(info.event.start);
+                          const hours = date.getHours();
+                          const isAM = hours < 12;
+                          const hour12 = hours % 12 || 12;
+                          return `${hour12}${isAM ? "a" : "p"}`;
+                        })()
+                      : ""}
+                  </span>
                   <span>{info.event.title}</span>
                 </div>
               );
@@ -345,9 +375,6 @@ const CalendarMain = ({ setSelectedDate }: CalendarProps) => {
               });
             });
           }}
-          // eventClick={handleEventClick}
-          // eventDrop={handleEventDrop}
-          // eventResize={handleEventResize}
         />
       </StyleWrapper>
 
@@ -371,8 +398,10 @@ const CalendarMain = ({ setSelectedDate }: CalendarProps) => {
               <div />
             </DropdownMenuTrigger>
             <DropdownMenuContent>
-              <DropdownMenuItem>Edit</DropdownMenuItem>
-              <DropdownMenuItem onClick={handleDeleteEvent}>
+              <DropdownMenuItem
+                onClick={handleDeleteEvent}
+                className="text-red-500"
+              >
                 Delete
               </DropdownMenuItem>
             </DropdownMenuContent>

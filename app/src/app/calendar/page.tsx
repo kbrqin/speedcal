@@ -1,9 +1,7 @@
 "use client";
 import CalendarMain from "@/components/calendar/calendar-main";
-import EventFetchTest from "@/components/event-fetch-test";
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
-import { redirect } from "next/navigation";
 import SidebarLeft from "@/components/calendar/sidebar-left";
 import SidebarRight from "@/components/calendar/sidebar-right";
 
@@ -12,6 +10,7 @@ const CalendarPage = () => {
   const supabase = createClient();
 
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<any | null>(null);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -29,11 +28,15 @@ const CalendarPage = () => {
           <SidebarLeft />
         </div>
         <div className="flex-11 h-full overflow-y-scroll">
-          <CalendarMain setSelectedDate={setSelectedDate} />
+          <CalendarMain
+            setSelectedDate={setSelectedDate}
+            setSelectedEvent={setSelectedEvent}
+          />
         </div>
         <div className="flex-3 border-l-1 border-gray-100 pl-1 h-full">
           <SidebarRight
             selectedDate={selectedDate}
+            selectedEvent={selectedEvent}
             onClose={() => setSelectedDate(null)}
           />
         </div>

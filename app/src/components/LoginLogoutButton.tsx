@@ -20,11 +20,14 @@ const LoginButton = () => {
   }, []);
   if (user) {
     return (
-      <Button variant="outline" size="sm"
+      <Button
+        variant="outline"
+        size="sm"
         onClick={() => {
           signout();
           setUser(null);
         }}
+        className="text-red-500 hover:bg-red-500 hover:text-white transition-colors duration-200"
       >
         Log out
       </Button>

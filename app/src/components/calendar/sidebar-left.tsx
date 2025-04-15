@@ -8,19 +8,11 @@ import { Button } from "@/components/ui/button";
 import { importCalendars } from "@/lib/calendar-actions";
 
 const SidebarLeft = () => {
-  const [user, setUser] = useState<any>(null);
   const [session, setSession] = useState<any>(null);
   const [calendars, setCalendars] = useState<any[]>([]);
 
   const supabase = createClient();
   useEffect(() => {
-    const fetchUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      setUser(user);
-    };
-    fetchUser();
     const fetchSession = async () => {
       const { data, error } = await supabase.auth.getSession();
       if (error) {
@@ -52,14 +44,12 @@ const SidebarLeft = () => {
   return (
     <div className="flex flex-col gap-4 px-2 py-4">
       <LoginButton />
-
       <CalendarSmall />
-
       <div className="text-sm">
         {calendars.length > 0 ? (
-          <div>
+          <div className="flex flex-col gap-2">
             <h2 className="font-semibold">Calendars:</h2>
-            <ul>
+            <ul className="flex flex-col gap-1">
               {calendars.map((calendar, index) => (
                 <li key={calendar.id}>
                   <p>{calendar.name}</p>{" "}
@@ -68,7 +58,7 @@ const SidebarLeft = () => {
             </ul>
           </div>
         ) : (
-          <p>No calendars available.</p>
+          <p>no calendars available D:</p>
         )}
       </div>
       <Button size="sm" variant="outline" onClick={handleImportCalendars}>

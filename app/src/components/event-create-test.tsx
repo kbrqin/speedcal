@@ -18,9 +18,21 @@ import {
 interface EventCreateTestProps {
   selectedDate: string | null;
   onClose: () => void;
+  selectedEvent?: {
+    id: string;
+    name: string;
+    description: string;
+    start: string;
+    end: string;
+    calendar_id: string;
+  };
 }
 
-const EventCreateTest = ({ selectedDate, onClose }: EventCreateTestProps) => {
+const EventCreateTest = ({
+  selectedDate,
+  onClose,
+  selectedEvent,
+}: EventCreateTestProps) => {
   const [user, setUser] = useState<any>(null);
   const [session, setSession] = useState<any>(null);
   const [start, setStart] = useState<Date | null>(null);
@@ -29,7 +41,7 @@ const EventCreateTest = ({ selectedDate, onClose }: EventCreateTestProps) => {
   const [eventDescription, setEventDescription] = useState<string | null>(null);
   const [calendars, setCalendars] = useState<any[]>([]);
   const [selectedCalendar, setSelectedCalendar] = useState<string | undefined>(
-    undefined
+    selectedEvent?.calendar_id ?? undefined
   );
   const supabase = createClient();
 
@@ -63,7 +75,7 @@ const EventCreateTest = ({ selectedDate, onClose }: EventCreateTestProps) => {
   }, []);
 
   useEffect(() => {
-    if (selectedDate) {
+    if (selectedDate && !selectedEvent) {
       const [year, month, day] = selectedDate.split("-").map(Number);
 
       const startDate = new Date(year, month - 1, day, 9, 0, 0, 0);
@@ -73,11 +85,26 @@ const EventCreateTest = ({ selectedDate, onClose }: EventCreateTestProps) => {
       endDate.setHours(10);
       setEnd(endDate);
     }
-  }, [selectedDate]);
+  }, [selectedDate, selectedEvent]);
+
+  useEffect(() => {
+    if (selectedEvent) {
+      setEventName(selectedEvent.name ?? null);
+      setEventDescription(selectedEvent.description ?? null);
+      setStart(new Date(selectedEvent.start));
+      setEnd(new Date(selectedEvent.end));
+      setSelectedCalendar(selectedEvent.calendar_id);
+    }
+  }, [selectedEvent]);
 
   async function handleSubmit(formData: FormData) {
-    if (session !== null) {
-      console.log("submitting");
+    if (!session) return;
+
+    if (selectedEvent) {
+      console.log("Editing event:", selectedEvent.id);
+      // TODO: Call updateEvent(formData, session.provider_token, eventToEdit.id)
+    } else {
+      console.log("Creating new event");
       const response = await createEvent(formData, session.provider_token);
       console.log(response);
     }
@@ -143,7 +170,7 @@ const EventCreateTest = ({ selectedDate, onClose }: EventCreateTestProps) => {
 
       <Select value={selectedCalendar} onValueChange={setSelectedCalendar}>
         <SelectTrigger className="w-full text-xs">
-          <SelectValue placeholder="Calendar" />
+          <SelectValue placeholder={selectedEvent?.calendar_id ?? "Calendar"} />
         </SelectTrigger>
         {calendars.length > 0 ? (
           <SelectContent className="w-full text-xs">
@@ -167,12 +194,12 @@ const EventCreateTest = ({ selectedDate, onClose }: EventCreateTestProps) => {
       />
 
       <Button
-        className="w-full text-xs"
+        className="w-full text-xs mt-2"
         variant="default"
         type="submit"
         formAction={handleSubmit}
       >
-        Create Event
+        {selectedEvent ? "Update Event" : "Create Event"}
       </Button>
     </form>
   );

@@ -36,12 +36,9 @@ async function googleCreateEvent(formData: FormData, sessionToken: string) {
       }),
     }
   );
-  // Convert the response to JSON
   const data = await response.json();
 
   console.log(data);
-
-  // Return the eventId
   return data.id;
 }
 async function supabaseCreateEvent(formData: FormData, eventId: string) {
@@ -108,37 +105,48 @@ export async function fetchEvents() {
   }
 }
 
+export async function fetchEventCalendarID(eventId: string) {
+  const supabase = await createClient();
+  console.log("client created");
+  const user = supabase.auth.getUser();
+  console.log("user", user);
+  if (user !== null) {
+    const { data: eventData, error } = await supabase
+      .from("events_test")
+      .select("calendar_id")
+      .eq("id", eventId);
+    if (error) {
+      console.log(error);
+      redirect("/error");
+    }
+    const { data: calendarIds, error: calendarError } = await supabase
+      .from("calendars")
+      .select("google_calendar_id")
+      .eq("calendar_id", eventData[0]?.calendar_id);
+    return calendarIds ? calendarIds[0].google_calendar_id : null;
+  }
+}
+
 export async function deleteEvent(eventId: string, sessionToken: string) {
   const supabase = await createClient();
   console.log("deleting event");
   const user = await supabase.auth.getUser();
-  const { data: googleEventId, error: fetchEventIdError } = await supabase
+  const { data: eventData, error: taskError } = await supabase
     .from("events_test")
-    .select("google_event_id")
+    .select("google_event_id, calendar_id")
     .eq("id", eventId)
     .single();
 
-  const { data: calendarId, error: fetchCalendarError } = await supabase
-    .from("events_test")
-    .select("calendar_id")
-    .eq("id", eventId)
+  const { data: calendarData, error: calendarError } = await supabase
+    .from("calendars")
+    .select("google_calendar_id")
+    .eq("id", eventData?.calendar_id)
     .single();
-
-  const { data: googleCalendarId, error: fetchGoogleCalendarIdError } =
-    await supabase
-      .from("calendars")
-      .select("google_calendar_id")
-      .eq("id", calendarId?.calendar_id)
-      .single();
-
-  console.log("googleEventId", googleEventId);
-  console.log("calendarId", calendarId);
-  console.log("googleCalendarId", googleCalendarId);
 
   console.log("google calendar deleting event");
 
   const response = await fetch(
-    `https://www.googleapis.com/calendar/v3/calendars/${googleCalendarId?.google_calendar_id}/events/${googleEventId?.google_event_id}`,
+    `https://www.googleapis.com/calendar/v3/calendars/${calendarData?.google_calendar_id}/events/${eventData?.google_event_id}`,
     {
       method: "DELETE",
       headers: {
@@ -173,33 +181,23 @@ export async function deleteTask(eventId: string, sessionToken: string) {
   const supabase = await createClient();
   console.log("deleting task");
   const user = await supabase.auth.getUser();
-  const { data: googleEventId, error: fetchEventIdError } = await supabase
+
+  const { data: taskData, error: taskError } = await supabase
     .from("tasks")
-    .select("google_event_id")
+    .select("google_event_id, calendar_id")
     .eq("id", eventId)
     .single();
 
-  const { data: calendarId, error: fetchCalendarError } = await supabase
-    .from("tasks")
-    .select("calendar_id")
-    .eq("id", eventId)
+  const { data: calendarData, error: calendarError } = await supabase
+    .from("calendars")
+    .select("google_calendar_id")
+    .eq("id", taskData?.calendar_id)
     .single();
-
-  const { data: googleCalendarId, error: fetchGoogleCalendarIdError } =
-    await supabase
-      .from("calendars")
-      .select("google_calendar_id")
-      .eq("id", calendarId?.calendar_id)
-      .single();
-
-  console.log("googleEventId", googleEventId);
-  console.log("calendarId", calendarId);
-  console.log("googleCalendarId", googleCalendarId);
 
   console.log("google calendar deleting task");
 
   const response = await fetch(
-    `https://www.googleapis.com/calendar/v3/calendars/${googleCalendarId?.google_calendar_id}/events/${googleEventId?.google_event_id}`,
+    `https://www.googleapis.com/calendar/v3/calendars/${calendarData?.google_calendar_id}/events/${taskData?.google_event_id}`,
     {
       method: "DELETE",
       headers: {
@@ -210,9 +208,9 @@ export async function deleteTask(eventId: string, sessionToken: string) {
   const data = await response.text();
   console.log(data);
 
-  //   if (!response.ok) {
-  //     return;
-  //   }
+  if (!response.ok) {
+    return;
+  }
   console.log("supabase deleting task");
 
   console.log("eventId", eventId);
@@ -230,14 +228,6 @@ export async function deleteTask(eventId: string, sessionToken: string) {
   revalidatePath("/calendar", "layout");
   redirect("/calendar");
 }
-
-// async function supabaseCreateTask() {
-
-// }
-
-// export async function createTask() {
-
-// }
 
 export async function fetchTasks() {
   console.log("fetching tasks");
